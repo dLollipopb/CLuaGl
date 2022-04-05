@@ -1,0 +1,1 @@
+clear & gcc -DMEMWATCH -DMW_STDIO -Llib -Iinclude main.c gl3w.c memwatch.c -ltcc -llua -lm -ldl -lglfw -lGL -lfreetype
