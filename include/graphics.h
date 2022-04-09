@@ -117,6 +117,8 @@ int lua_createwindow(lua_State* L)
     }
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
     if(keydataroot==0)
     {
         keydataroot=malloc(sizeof(KeyData));
@@ -908,8 +910,6 @@ int lua_createvao(lua_State* L)
     const char* type=lua_tostring(L,3);
     if(strcmp(type,"triangles")==0)
         vao->type=GL_TRIANGLES;
-    if(strcmp(type,"quads")==0)
-        vao->type=GL_QUADS;
     glGenVertexArrays(1,&vao->vaobuf);
     glBindVertexArray(vao->vaobuf);
 
@@ -1311,7 +1311,7 @@ int lua_deleteimage(lua_State* L)
     return 0;
 }
 
-int lua_createtexture(lua_State* L)
+int lua_loadtexture(lua_State* L)
 {
     int n=lua_gettop(L);
     if(n<2)
@@ -1342,6 +1342,162 @@ int lua_createtexture(lua_State* L)
     return 1;
 }
 
+int lua_createtexture(lua_State* L)
+{
+    int n=lua_gettop(L);
+    if(n<3)
+    {
+        luaL_error(L,"error arguments count (expected 3 arguments)");
+        return 0;
+    }
+    if(!lua_isuserdata(L,1))
+    {
+        luaL_error(L,"argument 1 must be userdata");
+        return 0;
+    }
+    if(!lua_isnumber(L,2))
+    {
+        luaL_error(L,"argument 2 must be number");
+        return 0;
+    }
+    if(!lua_isnumber(L,3))
+    {
+        luaL_error(L,"argument 3 must be number");
+        return 0;
+    }
+    glfwMakeContextCurrent(lua_touserdata(L,1));
+    int texture;
+    glGenTextures(1,&texture);
+    glBindTexture(GL_TEXTURE_2D,texture);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,lua_tointeger(L,2),lua_tointeger(L,3),0,GL_RGBA,GL_UNSIGNED_BYTE,0);
+    //glGenerateMipmap(GL_TEXTURE_2D);
+    lua_pushnumber(L,texture);
+    return 1;
+}
+
+int lua_textureclear(lua_State* L)
+{
+    int n=lua_gettop(L);
+    if(n<6)
+    {
+        luaL_error(L,"error arguments count (expected 6 arguments)");
+        return 0;
+    }
+    if(!lua_isuserdata(L,1))
+    {
+        luaL_error(L,"argument 1 must be userdata");
+        return 0;
+    }
+    if(!lua_isnumber(L,2))
+    {
+        luaL_error(L,"argument 2 must be number");
+        return 0;
+    }
+    if(!lua_isnumber(L,3))
+    {
+        luaL_error(L,"argument 3 must be number");
+        return 0;
+    }
+    if(!lua_isnumber(L,4))
+    {
+        luaL_error(L,"argument 4 must be number");
+        return 0;
+    }
+    if(!lua_isnumber(L,5))
+    {
+        luaL_error(L,"argument 5 must be number");
+        return 0;
+    }
+    if(!lua_isnumber(L,6))
+    {
+        luaL_error(L,"argument 6 must be number");
+        return 0;
+    }
+    glfwMakeContextCurrent(lua_touserdata(L,1));
+    int texture=lua_tointeger(L,2);
+    glBindTexture(GL_TEXTURE_2D,texture);
+    float color[4];
+    color[0]=lua_tonumber(L,3);
+    color[1]=lua_tonumber(L,4);
+    color[2]=lua_tonumber(L,5);
+    color[3]=lua_tonumber(L,6);
+    unsigned int red[] = {255,0,0,255};
+    glClearTexImage(texture,0,GL_RGBA,GL_UNSIGNED_BYTE,red);
+    return 0;
+}
+
+int lua_createdepthtexture(lua_State* L)
+{
+    int n=lua_gettop(L);
+    if(n<3)
+    {
+        luaL_error(L,"error arguments count (expected 3 arguments)");
+        return 0;
+    }
+    if(!lua_isuserdata(L,1))
+    {
+        luaL_error(L,"argument 1 must be userdata");
+        return 0;
+    }
+    if(!lua_isnumber(L,2))
+    {
+        luaL_error(L,"argument 2 must be number");
+        return 0;
+    }
+    if(!lua_isnumber(L,3))
+    {
+        luaL_error(L,"argument 3 must be number");
+        return 0;
+    }
+    glfwMakeContextCurrent(lua_touserdata(L,1));
+    int texture;
+    glGenTextures(1,&texture);
+    glBindTexture(GL_TEXTURE_2D,texture);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_DEPTH_COMPONENT32,lua_tointeger(L,2),lua_tointeger(L,3),0,GL_DEPTH_COMPONENT,GL_UNSIGNED_INT,0);
+    //glGenerateMipmap(GL_TEXTURE_2D);
+    lua_pushnumber(L,texture);
+    return 1;
+}
+
+int lua_createstenciltexture(lua_State* L)
+{
+    int n=lua_gettop(L);
+    if(n<3)
+    {
+        luaL_error(L,"error arguments count (expected 3 arguments)");
+        return 0;
+    }
+    if(!lua_isuserdata(L,1))
+    {
+        luaL_error(L,"argument 1 must be userdata");
+        return 0;
+    }
+    if(!lua_isnumber(L,2))
+    {
+        luaL_error(L,"argument 2 must be number");
+        return 0;
+    }
+    if(!lua_isnumber(L,3))
+    {
+        luaL_error(L,"argument 3 must be number");
+        return 0;
+    }
+    glfwMakeContextCurrent(lua_touserdata(L,1));
+    int texture;
+    glGenTextures(1,&texture);
+    glBindTexture(GL_TEXTURE_2D,texture);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_STENCIL_INDEX8,lua_tointeger(L,2),lua_tointeger(L,3),0,GL_STENCIL_INDEX,GL_UNSIGNED_BYTE,0);
+    //glGenerateMipmap(GL_TEXTURE_2D);
+    lua_pushnumber(L,texture);
+    return 1;
+}
+
 int lua_deletetexture(lua_State* L)
 {
     int n=lua_gettop(L);
@@ -1357,6 +1513,111 @@ int lua_deletetexture(lua_State* L)
     }
     int tex=lua_tointeger(L,1);
     glDeleteTextures(1,&tex);
+    return 0;
+}
+
+int lua_createframebuffer(lua_State* L)
+{
+    int n=lua_gettop(L);
+    if(n<4)
+    {
+        luaL_error(L,"error arguments count (expected 3 arguments)");
+        return 0;
+    }
+    if(!lua_isuserdata(L,1))
+    {
+        luaL_error(L,"argument 1 must be userdata");
+        return 0;
+    }
+    if(!lua_isnumber(L,2))
+    {
+        luaL_error(L,"argument 2 must be number");
+        return 0;
+    }
+    if(!lua_isnumber(L,3))
+    {
+        luaL_error(L,"argument 3 must be number");
+        return 0;
+    }
+    if(!lua_isnumber(L,4))
+    {
+        luaL_error(L,"argument 4 must be number");
+        return 0;
+    }
+    glfwMakeContextCurrent(lua_touserdata(L,1));
+    unsigned int fbo;
+    unsigned int texture=lua_tointeger(L,2);
+    unsigned int texture2=lua_tointeger(L,3);
+    unsigned int texture3=lua_tointeger(L,4);
+    glGenFramebuffers(1,&fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER,fbo);
+    //glBindTexture(GL_TEXTURE_2D,texture);
+    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,texture,0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_DEPTH_ATTACHMENT,GL_TEXTURE_2D,texture2,0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_STENCIL_ATTACHMENT,GL_TEXTURE_2D,texture3,0);
+    if(glCheckFramebufferStatus(GL_FRAMEBUFFER)!=GL_FRAMEBUFFER_COMPLETE)
+    {
+        glDeleteFramebuffers(1,&fbo);
+        luaL_error(L,"framebuffer is not complete");
+        return 0;
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER,0);
+    lua_pushnumber(L,fbo);
+    return 1;
+}
+
+int lua_deleteframebuffer(lua_State* L)
+{
+    int n=lua_gettop(L);
+    if(n<2)
+    {
+        luaL_error(L,"error arguments count (expected 3 arguments)");
+        return 0;
+    }
+    if(!lua_isuserdata(L,1))
+    {
+        luaL_error(L,"argument 1 must be userdata");
+        return 0;
+    }
+    if(!lua_isnumber(L,2))
+    {
+        luaL_error(L,"argument 2 must be number");
+        return 0;
+    }
+    glfwMakeContextCurrent(lua_touserdata(L,1));
+    unsigned int fbo=lua_tointeger(L,2);
+    glDeleteFramebuffers(1,&fbo);
+    return 0;
+}
+
+int lua_bindframebuffer(lua_State* L)
+{
+    int n=lua_gettop(L);
+    if(n<1)
+    {
+        luaL_error(L,"error arguments count (expected 2 arguments)");
+        return 0;
+    }
+    if(!lua_isuserdata(L,1))
+    {
+        luaL_error(L,"argument 1 must be userdata");
+        return 0;
+    }
+    glfwMakeContextCurrent(lua_touserdata(L,1));
+    if(n>=2)
+    {
+        if(!lua_isnumber(L,2))
+        {
+            luaL_error(L,"argument 2 must be integer");
+            return 0;
+        }
+        else
+            glBindFramebuffer(GL_FRAMEBUFFER,lua_tointeger(L,2));
+    }
+    else
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER,0);
+    }
     return 0;
 }
 
@@ -1600,10 +1861,24 @@ int graphicsInit(lua_State* argL)
     lua_setglobal(L,"loadimage");
     lua_pushcfunction(L,&lua_deleteimage);
     lua_setglobal(L,"deleteimage");
+    lua_pushcfunction(L,&lua_loadtexture);
+    lua_setglobal(L,"loadtexture");
     lua_pushcfunction(L,&lua_createtexture);
     lua_setglobal(L,"createtexture");
+    lua_pushcfunction(L,&lua_textureclear);
+    lua_setglobal(L,"textureclear");
+    lua_pushcfunction(L,&lua_createdepthtexture);
+    lua_setglobal(L,"createdepthtexture");
+    lua_pushcfunction(L,&lua_createstenciltexture);
+    lua_setglobal(L,"createstenciltexture");
     lua_pushcfunction(L,&lua_deletetexture);
     lua_setglobal(L,"deletetexture");
+    lua_pushcfunction(L,&lua_createframebuffer);
+    lua_setglobal(L,"createframebuffer");
+    lua_pushcfunction(L,&lua_deleteframebuffer);
+    lua_setglobal(L,"deleteframebuffer");
+    lua_pushcfunction(L,&lua_bindframebuffer);
+    lua_setglobal(L,"bindframebuffer");
     lua_pushcfunction(L,&lua_keycallback);
     lua_setglobal(L,"keycallback");
     lua_pushcfunction(L,&lua_mouseenable);

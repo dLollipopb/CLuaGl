@@ -3,6 +3,7 @@ matrix=require("matrix")
 quat=require("quat")
 vector=require("vector")
 loadobj=require("obj")
+gui=require("gui")
 keycode,keyname=table.unpack(require("keys"))
 
 tcc=createtccstate()
@@ -167,7 +168,7 @@ void main()
 	float diff = max(dot(norm, sun), 0.0);
 	//vec3 result = diff * texture(tex,otexcoord).xyz;
 	vec3 result = diff * vec3(1.0,1.0,1.0);
-	color=vec4(result,1.0f);
+	color=vec4(result,1.0);
 }]]
 
 loadobjdata=function(w,shader,file,bvt,ld)
@@ -188,217 +189,6 @@ loadobjdata=function(w,shader,file,bvt,ld)
 			table.insert(texcoord,data["vt"][gvt])
 		end
 		table.insert(normal,data["vn"][gvn])
-	end
-
-	if ld~=nil then
-		local cols={}
-		local removes={}
-		local eq=function(a,b)
-			return a[1]==b[1] and a[2]==b[2] and a[3]==b[3]
-		end
-		--local centers={}
-		collectgarbage("collect")
-		print(1,collectgarbage("count"))
-		for i=0,#pos/3-1 do
-			table.insert(cols,{{},{},{}})
-			--local x,y,z
-			--x=(pos[(i*3+0)+1]+pos[(i*3+1)+1]+pos[(i*3+2)+1])/3
-			--y=(pos[(i*3+0)+2]+pos[(i*3+1)+2]+pos[(i*3+2)+2])/3
-			--z=(pos[(i*3+0)+3]+pos[(i*3+1)+3]+pos[(i*3+2)+3])/3
-			--table.insert(centers,{x,y,z})
-		end
-		collectgarbage("collect")
-		print(2,collectgarbage("count"))
-		local mem=0
-		for i=1,#pos/3 do
-			for j=i+1,#pos/3 do
-				--print(#pos,i*3+2-2,j*3+2-2)
-				if eq(pos[i*3-2],pos[j*3-2]) then
-					table.insert(cols[i][1],{j,0})
-					table.insert(cols[j][1],{i,0})
-				elseif eq(pos[i*3-2],pos[j*3+1-2]) then
-					table.insert(cols[i][1],{j,1})
-					table.insert(cols[j][2],{i,0})
-				elseif eq(pos[i*3-2],pos[j*3+2-2]) then
-					table.insert(cols[i][1],{j,2})
-					table.insert(cols[j][3],{i,0})
-				end
-				if eq(pos[i*3+1-2],pos[j*3-2]) then
-					table.insert(cols[i][2],{j,0})
-					table.insert(cols[j][1],{i,1})
-				elseif eq(pos[i*3+1-2],pos[j*3+1-2]) then
-					table.insert(cols[i][2],{j,1})
-					table.insert(cols[j][2],{i,1})
-				elseif eq(pos[i*3+1-2],pos[j*3+2-2]) then
-					table.insert(cols[i][2],{j,2})
-					table.insert(cols[j][3],{i,1})
-				end
-				if eq(pos[i*3+2-2],pos[j*3-2]) then
-					table.insert(cols[i][3],{j,0})
-					table.insert(cols[j][1],{i,2})
-				elseif eq(pos[i*3+2-2],pos[j*3+1-2]) then
-					table.insert(cols[i][3],{j,1})
-					table.insert(cols[j][2],{i,2})
-				elseif eq(pos[i*3+2-2],pos[j*3+2-2]) then
-					table.insert(cols[i][3],{j,2})
-					table.insert(cols[j][3],{i,2})
-				end
-			end
-			collectgarbage("collect")
-			local cc=collectgarbage("count")
-			--if mem~=cc then
-			--	print(33,tostring(i).."/"..tostring(#pos/3-1),cc)
-			--	mem=cc
-			--end
-		end
-		--[[for i=0,#pos/3-1 do
-			for j=i+1,#pos/3-1 do
-				if eql(i*3,i*3+1,j*3,j*3+1) then
-					cols[i+1][1]={j,1}
-					break
-				elseif eql(i*3,i*3+2,j*3,j*3+2) then
-					cols[i+1][1]={j,2}
-					break
-				elseif eql(i*3,i*3+3,j*3,j*3+3) then
-					cols[i+1][1]={j,2}
-					break
-				end
-			end
-			for j=i+1,#pos/3-1 do
-				if eql(i*3+1,i*3+1,j*3+1,j*3+1) then
-					cols[i+1][1]={j,1}
-					break
-				elseif eql(i*3+1,i*3+2,j*3+1,j*3+2) then
-					cols[i+1][1]={j,2}
-					break
-				elseif eql(i*3+1,i*3+3,j*3+1,j*3+3) then
-					cols[i+1][1]={j,2}
-					break
-				end
-			end
-			for j=i+1,#pos/3-1 do
-				if eql(i*3+2,i*3+1,j*3+2,j*3+1) then
-					cols[i+1][1]={j,1}
-					break
-				elseif eql(i*3+2,i*3+2,j*3+2,j*3+2) then
-					cols[i+1][1]={j,2}
-					break
-				elseif eql(i*3+2,i*3+3,j*3+2,j*3+3) then
-					cols[i+1][1]={j,2}
-					break
-				end
-			end
-		end]]
-		collectgarbage("collect")
-		print(3,collectgarbage("count"),"ld",ld)
-		for i=1,#pos/3 do
-			local a={table.unpack(pos[i*3-2])}
-			local b={table.unpack(pos[i*3-1])}
-			local c={table.unpack(pos[i*3])}
-			--local a,b,c=pos[i*3+1],pos[i*3+2],pos[i*3+3]
-			a[1]=math.floor(a[1]/ld)*ld
-			a[2]=math.floor(a[2]/ld)*ld
-			a[3]=math.floor(a[3]/ld)*ld
-			b[1]=math.floor(b[1]/ld)*ld
-			b[2]=math.floor(b[2]/ld)*ld
-			b[3]=math.floor(b[3]/ld)*ld
-			c[1]=math.floor(c[1]/ld)*ld
-			c[2]=math.floor(c[2]/ld)*ld
-			c[3]=math.floor(c[3]/ld)*ld
-			if eq(a,b) or eq(b,c) or eq(c,a) then
-				table.insert(removes,i)
-			end
-		end
-		print("removes",#removes)
-		collectgarbage("collect")
-		print(4,collectgarbage("count"))
-		print("poss",#pos)
-		for i=1,#removes do
-			local v=removes[i]
-			local x,y,z,ux,uy,nx,ny,nz
-			if not (eq(pos[v*3-2],pos[v*3+1-2]) or eq(pos[v*3+1-2],pos[v*3+2-2]) or eq(pos[v*3+2-2],pos[v*3-2])) then
-				--print(pos[(0*3+0)*3+1],pos[(0*3+1)*3+1],pos[(0*3+2)*3+1])
-				x=(pos[v*3-2][1]+pos[v*3+1-2][1]+pos[v*3+2-2][1])/3
-				y=(pos[v*3-2][2]+pos[v*3+1-2][2]+pos[v*3+2-2][2])/3
-				z=(pos[v*3-2][3]+pos[v*3+1-2][3]+pos[v*3+2-2][3])/3
-				if bvt then
-					ux=(texcoord[v*3-2][1]+pos[v*3+1-2][1])/2
-					uy=(texcoord[v*3-2][2]+pos[v*3+1-2][2])/2
-				end
-				nx=(normal[v*3-2][1]+normal[v*3+1-2][1]+normal[v*3+2-2][1])/3
-				ny=(normal[v*3-2][2]+normal[v*3+1-2][2]+normal[v*3+2-2][2])/3
-				nz=(normal[v*3-2][3]+normal[v*3+1-2][3]+normal[v*3+2-2][3])/3
-				for _,j in pairs(cols[v][1]) do
-					--print(#pos,j[1]*3+j[2]-2)
-					pos[j[1]*3+j[2]-2][1]=x
-					pos[j[1]*3+j[2]-2][2]=y
-					pos[j[1]*3+j[2]-2][3]=z
-					if bvt then
-						texcoord[j[1]*3+j[2]-2][1]=ux
-						texcoord[j[1]*3+j[2]-2][2]=uy
-					end
-					normal[j[1]*3+j[2]-2][1]=nx
-					normal[j[1]*3+j[2]-2][2]=ny
-					normal[j[1]*3+j[2]-2][3]=nz
-					for _,jj in pairs(cols[v][2]) do
-						table.insert(cols[j[1]][j[2]+1],jj)
-					end
-					for _,jj in pairs(cols[v][3]) do
-						table.insert(cols[j[1]][j[2]+1],jj)
-					end
-				end
-				for _,j in pairs(cols[v][2]) do
-					pos[j[1]*3+j[2]-2][1]=x
-					pos[j[1]*3+j[2]-2][2]=y
-					pos[j[1]*3+j[2]-2][3]=z
-					if bvt then
-						texcoord[j[1]*3+j[2]-2][1]=ux
-						texcoord[j[1]*3+j[2]-2][2]=uy
-					end
-					normal[j[1]*3+j[2]-2][1]=nx
-					normal[j[1]*3+j[2]-2][2]=ny
-					normal[j[1]*3+j[2]-2][3]=nz
-					for _,jj in pairs(cols[v][1]) do
-						table.insert(cols[j[1]][j[2]+1],jj)
-					end
-					for _,jj in pairs(cols[v][3]) do
-						table.insert(cols[j[1]][j[2]+1],jj)
-					end
-				end
-				for _,j in pairs(cols[v][3]) do
-					pos[j[1]*3+j[2]-2][1]=x
-					pos[j[1]*3+j[2]-2][2]=y
-					pos[j[1]*3+j[2]-2][3]=z
-					if bvt then
-						texcoord[j[1]*3+j[2]-2][1]=ux
-						texcoord[j[1]*3+j[2]-2][2]=uy
-					end
-					normal[j[1]*3+j[2]-2][1]=nx
-					normal[j[1]*3+j[2]-2][2]=ny
-					normal[j[1]*3+j[2]-2][3]=nz
-					for _,jj in pairs(cols[v][1]) do
-						table.insert(cols[j[1]][j[2]+1],jj)
-					end
-					for _,jj in pairs(cols[v][2]) do
-						table.insert(cols[j[1]][j[2]+1],jj)
-					end
-				end
-			end
-		end
-		for i=#removes,1,-1 do
-			local v=removes[i]
-			table.remove(pos,v*3+1)
-			table.remove(pos,v*3+1)
-			table.remove(pos,v*3+1)
-			if bvt then
-				table.remove(texcoord,v*3+1)
-				table.remove(texcoord,v*3+1)
-				table.remove(texcoord,v*3+1)
-			end
-			table.remove(normal,v*3+1)
-			table.remove(normal,v*3+1)
-			table.remove(normal,v*3+1)
-		end
 	end
 
 	print(file,#pos/3,ld)
@@ -439,7 +229,8 @@ errfunc=function(str)
 	print(str)
 end
 
-w=graphics.window.new(640,480,"title",errfunc)
+w=graphics.window.new(1366,768,"title",errfunc)
+g=gui.new(w)
 shader=w:shader(w:vertexshader(vertex_shader_text),w:fragmentshader(fragment_shader_text))
 shader2=w:shader(w:vertexshader(vertex_shader_text2),w:fragmentshader(fragment_shader_text2))
 
@@ -447,10 +238,10 @@ shader2=w:shader(w:vertexshader(vertex_shader_text2),w:fragmentshader(fragment_s
 --vao3=loadobjdata(w,shader2,"monster.obj")
 --vao22=loadobjdata(w,shader2,"skel.obj")--,nil,1.0)
 --vao2=loadobjdata(w,shader2,"skel.obj",false)
-vao1=loadobjdata(w,shader2,"terrain.obj",false)
+vao1=loadobjdata(w,shader2,"monster.obj",false)
 
-tex1=w:texture(graphics.image.load("Gun.png"))
-tex11=w:texture(graphics.image.load("box_spec.png"))
+tex1=w:textureload(graphics.image.load("monster.bmp"))
+tex11=w:textureload(graphics.image.load("box_spec.png"))
 --tex2=w:texture(graphics.image.load("btr8chas.jpg"))
 --tex3=w:texture(graphics.image.load("monster.bmp"))
 
@@ -459,7 +250,9 @@ width,height,t=0,0,1
 vpos=vector:new(0,0,0)
 vquat=quat:identity()
 mouseview=false
-speed=3
+speed=0.5
+rect=g:rect(0,0,100,100,{0.0,0.0,0.0,0.9},{0.0,0.0},{0.5,0.7})
+rect=g:rect(0,0,100,100,{0.0,0.0,0.0,0.9},{-0.8,-1.0},{0.5,0.7})
 render=function(...)
 	while not w:shouldclose() do
 		dt=graphics:timedelta()
@@ -501,11 +294,13 @@ render=function(...)
 		w:viewport(0,0,width,height)
 		--model=quat:rotate(vector:new(0.0,1.0,0.0),t):matrix()*matrix:translate(0,0,3)
 		view=matrix:translate(table.unpack(vpos))*vquat:matrix()
-		w:clearcolor(0.2,0.3,0.3,1.0)
+		w:bind()
 		w:cleardepth()
+		w:clearcolor(0.2,0.3,0.7,1.0)
 		proj=matrix:projection(0.1,1000,math.pi/2,width/height)
 		model=matrix:scale(0.1,0.1,0.1)*matrix:translate(0,0,0)
 		vao1:draw({M=model,V=view,P=proj,tex=tex1.tex,viewPos=vpos,tex_spec=tex11.tex,sun=sun})
+		g:draw()
 		--model=matrix:scale(0.1,0.1,0.1)*matrix:translate(3,0,0)
 		--vao22:draw({M=model,V=view,P=proj,tex=tex2.tex,viewPos=vpos,tex_spec=tex11.tex})
 		--model=matrix:scale(0.1,0.1,0.1)*matrix:translate(0,0,0)

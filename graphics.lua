@@ -22,14 +22,23 @@ local _swapbuffers=swapbuffers
 local _drawmesh=drawmesh
 local _windowsize=windowsize
 local _viewport=viewport
+local _loadtexture=loadtexture
 local _createtexture=createtexture
+local _textureclear=textureclear
+local _createdepthtexture=createdepthtexture
+local _createstenciltexture=createstenciltexture
 local _deletetexture=deletetexture
+local _createframebuffer=createframebuffer
+local _deleteframebuffer=deleteframebuffer
 local _loadimage=loadimage
 local _deleteimage=deleteimage
 local _keycallback=keycallback
 local _mouseenable=mouseenable
 local _mousesetpos=mousesetpos
 local _mousegetpos=mousegetpos
+local _depthtest=depthtest
+local _cullface=cullface
+local _bindframebuffer=bindframebuffer
 graphics.timedelta=timedelta
 graphics.pollevents=pollevents
 
@@ -57,14 +66,23 @@ windowsize=nil
 viewport=nil
 timedelta=nil
 pollevents=nil
+loadtexture=nil
 createtexture=nil
+textureclear=nil
+createdepthtexture=nil
+createstenciltexture=nil
 deletetexture=nil
+createframebuffer=nil
+deleteframebuffer=nil
 loadimage=nil
 deleteimage=nil
 keycallback=nil
 mouseenable=nil
 mousepsetos=nil
 mousepgetos=nil
+depthtest=nil
+cullface=nil
+bindframebuffer=nil
 
 graphics.window={__metatable={}}
 
@@ -90,7 +108,7 @@ end
 local keycode,keyname=table.unpack(require("keys"))
 
 graphics.window.new=function(w,h,title,errfunc,flags)
-	local obj={win=_createwindow(w,h,title),vert={},frag={},prog={},vertdata={},vbos={},vaos={},texs={}}
+	local obj={win=_createwindow(w,h,title),vert={},frag={},prog={},vertdata={},vbos={},vaos={},texs={},fbo_stack={}}
 	local index={keys={}}
 	obj.index=index
 	flags=flags or {}
@@ -115,6 +133,22 @@ graphics.window.new=function(w,h,title,errfunc,flags)
 		function(self)
 			self:close()
 		end,__index=setmetatable({access=access},{__index=graphics.window})})
+end
+
+graphics.window.bind=function(self)
+	local obj=self.access(_key)
+	obj.fbo_stack={}
+	_bindframebuffer(obj.win)
+end
+
+graphics.window.bindback=function(self)
+	local obj=self.access(_key)
+	local fb=table.remove(obj.fbo_stack)
+	if fb==nil then
+		_bindframebuffer(obj.win)
+	else
+		_bindframebuffer(obj.win,fb.buf)
+	end
 end
 
 graphics.window.close=function(self)
@@ -302,10 +336,10 @@ graphics.window.vao=function(self,type,...)
 		end,__index=setmetatable({access=access},{__index=vao})})
 end
 
-vao.draw=function(self,...)
+vao.draw=function(self,uniforms)
 	local vaoobj=self.access(_key)
 	local obj=vaoobj.win
-	_drawmesh(obj.win,vaoobj.vao,vaoobj.progobj.prog,...)
+	_drawmesh(obj.win,vaoobj.vao,vaoobj.progobj.prog,uniforms)
 end
 
 graphics.window.clearcolor=function(self,...)
@@ -328,6 +362,16 @@ graphics.window.getsize=function(self)
 	return _windowsize(obj.win)
 end
 
+graphics.window.depthtest=function(self,enable)
+	local obj=self.access(_key)
+	return _depthtest(obj.win,enable)
+end
+
+graphics.window.cullface=function(self,enable)
+	local obj=self.access(_key)
+	return _cullface(obj.win,enable)
+end
+
 graphics.window.viewport=function(self,...)
 	local obj=self.access(_key)
 	_viewport(obj.win,...)
@@ -335,9 +379,14 @@ end
 
 local texture={}
 
-graphics.window.texture=function(self,image)
+texture.clear=function(self,r,g,b,a)
 	local obj=self.access(_key)
-	local texobj={win=obj,tex=_createtexture(obj.win,image.access(_key).img)}
+	_textureclear(obj.win.win,obj.tex,r,g,b,a)
+end
+
+graphics.window.textureload=function(self,image)
+	local obj=self.access(_key)
+	local texobj={win=obj,tex=_loadtexture(obj.win,image.access(_key).img)}
 	local access=function(key)
 		if key==_key then
 			return texobj
@@ -357,6 +406,110 @@ graphics.window.texture=function(self,image)
 			_deletetexture(texobj.tex)
 			obj.texs[index]=nil
 		end,__index=setmetatable({access=access},{__index=texture})})
+end
+
+graphics.window.texture=function(self,w,h)
+	local obj=self.access(_key)
+	local texobj={win=obj,tex=_createtexture(obj.win,w,h)}
+	local access=function(key)
+		if key==_key then
+			return texobj
+		end
+		assert(false,"no access")
+	end
+	local index={tex=texobj.tex}
+	local access=function(key)
+		if key==_key then
+			return texobj
+		end
+		assert(false,"no access")
+	end
+	obj.texs[index]=true
+	return setmetatable(index,{__gc=
+		function(self)
+			_deletetexture(texobj.tex)
+			obj.texs[index]=nil
+		end,__index=setmetatable({access=access},{__index=texture})})
+end
+
+graphics.window.depthtexture=function(self,w,h)
+	local obj=self.access(_key)
+	local texobj={win=obj,tex=_createdepthtexture(obj.win,w,h)}
+	local access=function(key)
+		if key==_key then
+			return texobj
+		end
+		assert(false,"no access")
+	end
+	local index={tex=texobj.tex}
+	local access=function(key)
+		if key==_key then
+			return texobj
+		end
+		assert(false,"no access")
+	end
+	obj.texs[index]=true
+	return setmetatable(index,{__gc=
+		function(self)
+			_deletetexture(texobj.tex)
+			obj.texs[index]=nil
+		end,__index=setmetatable({access=access},{__index=texture})})
+end
+
+graphics.window.stenciltexture=function(self,w,h)
+	local obj=self.access(_key)
+	local texobj={win=obj,tex=_createstenciltexture(obj.win,w,h)}
+	local access=function(key)
+		if key==_key then
+			return texobj
+		end
+		assert(false,"no access")
+	end
+	local index={tex=texobj.tex}
+	local access=function(key)
+		if key==_key then
+			return texobj
+		end
+		assert(false,"no access")
+	end
+	obj.texs[index]=true
+	return setmetatable(index,{__gc=
+		function(self)
+			_deletetexture(texobj.tex)
+			obj.texs[index]=nil
+		end,__index=setmetatable({access=access},{__index=texture})})
+end
+
+local framebuffer={}
+
+graphics.window.framebuffer=function(self,rgb,depth,stencil)
+	local obj=self.access(_key)
+	local frameobj={win=obj,buf=_createframebuffer(obj.win,rgb.tex,depth.tex,stencil.tex)}
+	local access=function(key)
+		if key==_key then
+			return frameobj
+		end
+		assert(false,"no access")
+	end
+	local index={}
+	local access=function(key)
+		if key==_key then
+			return frameobj
+		end
+		assert(false,"no access")
+	end
+	obj.texs[index]=true
+	return setmetatable(index,{__gc=
+		function(self)
+			_deleteframebuffer(frameobj.buf)
+			obj.texs[index]=nil
+		end,__index=setmetatable({access=access},{__index=framebuffer})})
+end
+
+framebuffer.bind=function(self)
+	local obj=self.access(_key)
+	table.insert(obj.win.fbo_stack,obj)
+	_bindframebuffer(obj.win.win,obj.buf)
 end
 
 return graphics
